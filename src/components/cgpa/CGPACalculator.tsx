@@ -115,7 +115,7 @@ const CGPACalculator = () => {
               </div>
               <div className="col-span-3">
                 <Select
-                  value={course.credits.toString()}
+                  value={String(course.credits)}
                   onValueChange={(value) => updateCourse(course.id, 'credits', parseInt(value))}
                 >
                   <SelectTrigger>
@@ -123,7 +123,7 @@ const CGPACalculator = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {[1, 2, 3, 4, 5].map(credits => (
-                      <SelectItem key={credits} value={credits.toString()}>
+                      <SelectItem key={credits} value={String(credits)}>
                         {credits}
                       </SelectItem>
                     ))}
@@ -169,8 +169,8 @@ const CGPACalculator = () => {
                 <p className="text-sm">
                   To achieve a CGPA of <strong>{targetCGPA}</strong>, you'll need to maintain an average grade of{' '}
                   <strong>{
-                    parseFloat(cgpa) < targetCGPA ? 'higher than' : 
-                    parseFloat(cgpa) > targetCGPA ? 'lower than' : 
+                    typeof cgpa === 'string' && parseFloat(cgpa) < targetCGPA ? 'higher than' : 
+                    typeof cgpa === 'string' && parseFloat(cgpa) > targetCGPA ? 'lower than' : 
                     'equal to'
                   } your current performance</strong> in future courses.
                 </p>
