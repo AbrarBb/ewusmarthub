@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Course {
   id: string;
@@ -40,20 +40,58 @@ const CGPACalculator = () => {
   ]);
   
   const [targetCGPA, setTargetCGPA] = useState<number>(3.5);
+  const { toast } = useToast();
 
   const addCourse = () => {
     const newId = Date.now().toString();
     setCourses([...courses, { id: newId, name: `Course ${courses.length + 1}`, grade: 'A', credits: 3 }]);
+    toast({
+      title: "Course Added",
+      description: "New course has been added to your list.",
+    });
   };
 
   const removeCourse = (id: string) => {
+    if (courses.length <= 1) {
+      toast({
+        title: "Cannot Remove Course",
+        description: "You must have at least one course.",
+        variant: "destructive",
+      });
+      return;
+    }
     setCourses(courses.filter(course => course.id !== id));
+    toast({
+      title: "Course Removed",
+      description: "The course has been removed from your list.",
+    });
   };
 
   const updateCourse = (id: string, field: keyof Course, value: string | number) => {
-    setCourses(courses.map(course => 
-      course.id === id ? { ...course, [field]: value } : course
-    ));
+    setCourses(courses.map(course => {
+      if (course.id === id) {
+        const updatedCourse = { ...course, [field]: value };
+        toast({
+          title: "Course Updated",
+          description: `${field.charAt(0).toUpperCase() + field.slice(1)} has been updated for ${course.name}.`,
+        });
+        return updatedCourse;
+      }
+      return course;
+    }));
+  };
+
+  const handleTargetCGPAChange = (value: string) => {
+    const parsedValue = parseFloat(value);
+    if (isNaN(parsedValue) || parsedValue < 0 || parsedValue > 4) {
+      toast({
+        title: "Invalid CGPA",
+        description: "Target CGPA must be between 0 and 4.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setTargetCGPA(parsedValue);
   };
 
   const calculateCGPA = () => {
@@ -143,7 +181,11 @@ const CGPACalculator = () => {
             </div>
           ))}
           
-          <Button variant="outline" onClick={addCourse} className="w-full">
+          <Button 
+            variant="outline" 
+            onClick={addCourse} 
+            className="w-full hover:bg-primary hover:text-white transition-colors"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Course
           </Button>
@@ -162,7 +204,8 @@ const CGPACalculator = () => {
                 max="4"
                 step="0.1"
                 value={targetCGPA}
-                onChange={(e) => setTargetCGPA(parseFloat(e.target.value))}
+                onChange={(e) => handleTargetCGPAChange(e.target.value)}
+                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               
               <div className="bg-muted p-3 rounded-md mt-2">
