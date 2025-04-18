@@ -1,13 +1,48 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Star, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
+import { Search, Star, ThumbsUp, ThumbsDown, MessageSquare, Plus, Filter } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface CourseReview {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  instructor: string;
+  rating: number;
+  difficulty: string;
+  workload: string;
+  review: string;
+  author: string;
+  date: string;
+  likes: number;
+  dislikes: number;
+  comments: number;
+  userLiked?: boolean;
+  userDisliked?: boolean;
+}
 
 const CourseInsights = () => {
-  const courseReviews = [
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+  const [reviewContent, setReviewContent] = useState('');
+  const [newReview, setNewReview] = useState({
+    courseCode: '',
+    courseName: '',
+    instructor: '',
+    rating: 5,
+    difficulty: 'Moderate',
+    workload: 'Moderate',
+  });
+  
+  const [courseReviews, setCourseReviews] = useState<CourseReview[]>([
     {
       id: '1',
       courseCode: 'CSE303',
@@ -53,7 +88,198 @@ const CourseInsights = () => {
       dislikes: 4,
       comments: 7,
     },
-  ];
+  ]);
+
+  const handleNewReviewSubmit = () => {
+    if (!newReview.courseCode || !newReview.courseName || !newReview.instructor || !reviewContent) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const currentDate = new Date();
+    const dateString = currentDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    const review: CourseReview = {
+      id: Date.now().toString(),
+      courseCode: newReview.courseCode,
+      courseName: newReview.courseName,
+      instructor: newReview.instructor,
+      rating: newReview.rating,
+      difficulty: newReview.difficulty,
+      workload: newReview.workload,
+      review: reviewContent,
+      author: "You",
+      date: dateString,
+      likes: 0,
+      dislikes: 0,
+      comments: 0,
+    };
+    
+    setCourseReviews([review, ...courseReviews]);
+    
+    // Reset form
+    setNewReview({
+      courseCode: '',
+      courseName: '',
+      instructor: '',
+      rating: 5,
+      difficulty: 'Moderate',
+      workload: 'Moderate',
+    });
+    setReviewContent('');
+    
+    toast({
+      title: "Review Submitted",
+      description: "Your course review has been published successfully.",
+    });
+  };
+
+  const handleLike = (id: string) => {
+    setCourseReviews(courseReviews.map(review => {
+      if (review.id === id) {
+        // If already liked, remove like
+        if (review.userLiked) {
+          toast({
+            title: "Like Removed",
+            description: "You've removed your like from this review.",
+          });
+          return { 
+            ...review, 
+            likes: review.likes - 1, 
+            userLiked: false 
+          };
+        }
+        
+        // If disliked, remove dislike and add like
+        if (review.userDisliked) {
+          toast({
+            title: "Changed to Like",
+            description: "You now like this review.",
+          });
+          return { 
+            ...review, 
+            likes: review.likes + 1, 
+            dislikes: review.dislikes - 1, 
+            userLiked: true, 
+            userDisliked: false 
+          };
+        }
+        
+        // Regular like
+        toast({
+          title: "Review Liked",
+          description: "You've liked this review.",
+        });
+        return { 
+          ...review, 
+          likes: review.likes + 1,
+          userLiked: true 
+        };
+      }
+      return review;
+    }));
+  };
+
+  const handleDislike = (id: string) => {
+    setCourseReviews(courseReviews.map(review => {
+      if (review.id === id) {
+        // If already disliked, remove dislike
+        if (review.userDisliked) {
+          toast({
+            title: "Dislike Removed",
+            description: "You've removed your dislike from this review.",
+          });
+          return { 
+            ...review, 
+            dislikes: review.dislikes - 1, 
+            userDisliked: false 
+          };
+        }
+        
+        // If liked, remove like and add dislike
+        if (review.userLiked) {
+          toast({
+            title: "Changed to Dislike",
+            description: "You now dislike this review.",
+          });
+          return { 
+            ...review, 
+            likes: review.likes - 1, 
+            dislikes: review.dislikes + 1, 
+            userLiked: false, 
+            userDisliked: true 
+          };
+        }
+        
+        // Regular dislike
+        toast({
+          title: "Review Disliked",
+          description: "You've disliked this review.",
+        });
+        return { 
+          ...review, 
+          dislikes: review.dislikes + 1,
+          userDisliked: true 
+        };
+      }
+      return review;
+    }));
+  };
+
+  const handleComment = (id: string) => {
+    toast({
+      title: "Comments Feature",
+      description: "Comments functionality will be available soon!",
+    });
+  };
+
+  const handleDepartmentSelection = (department: string) => {
+    setSelectedDepartment(department === selectedDepartment ? null : department);
+    toast({
+      title: department === selectedDepartment ? "Filter Removed" : "Department Filtered",
+      description: department === selectedDepartment 
+        ? "Showing reviews from all departments." 
+        : `Showing reviews from ${department} department.`,
+    });
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    if (value.length > 2) {
+      toast({
+        title: "Searching",
+        description: `Searching for "${value}"...`,
+      });
+    }
+  };
+
+  const filteredReviews = courseReviews.filter(review => {
+    const matchesSearch = searchTerm.length < 3 || 
+      review.courseCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      review.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      review.instructor.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchesDepartment = !selectedDepartment || 
+      review.courseCode.startsWith(selectedDepartment.split(' ')[0]);
+      
+    return matchesSearch && matchesDepartment;
+  });
+
+  const handleLoadMore = () => {
+    toast({
+      title: "Load More",
+      description: "Loading more reviews...",
+    });
+    // In a real app, this would fetch more reviews from an API
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -67,6 +293,8 @@ const CourseInsights = () => {
         <Input 
           className="pl-10" 
           placeholder="Search for courses, instructors, or departments..." 
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
         />
       </div>
 
@@ -78,15 +306,179 @@ const CourseInsights = () => {
         </TabsList>
         
         <TabsContent value="courses" className="space-y-4 mt-4">
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm">All Departments</Button>
-            <Button variant="outline" size="sm">Computer Science</Button>
-            <Button variant="outline" size="sm">Electrical Engineering</Button>
-            <Button variant="outline" size="sm">Business</Button>
-            <Button variant="outline" size="sm">Mathematics</Button>
+          <div className="flex justify-between items-center">
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant={selectedDepartment === null ? "default" : "outline"} 
+                size="sm"
+                onClick={() => handleDepartmentSelection('All Departments')}
+              >
+                All Departments
+              </Button>
+              <Button 
+                variant={selectedDepartment === "CSE Computer Science" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => handleDepartmentSelection('CSE Computer Science')}
+              >
+                Computer Science
+              </Button>
+              <Button 
+                variant={selectedDepartment === "EEE Electrical Engineering" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => handleDepartmentSelection('EEE Electrical Engineering')}
+              >
+                Electrical Engineering
+              </Button>
+              <Button 
+                variant={selectedDepartment === "BBA Business" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => handleDepartmentSelection('BBA Business')}
+              >
+                Business
+              </Button>
+              <Button 
+                variant={selectedDepartment === "MAT Mathematics" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => handleDepartmentSelection('MAT Mathematics')}
+              >
+                Mathematics
+              </Button>
+            </div>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Review
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Add Course Review</DialogTitle>
+                  <DialogDescription>
+                    Share your experience to help other students make informed decisions.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="courseCode" className="text-sm font-medium">Course Code*</label>
+                      <Input 
+                        id="courseCode" 
+                        placeholder="e.g., CSE303" 
+                        value={newReview.courseCode}
+                        onChange={(e) => setNewReview({...newReview, courseCode: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="courseName" className="text-sm font-medium">Course Name*</label>
+                      <Input 
+                        id="courseName" 
+                        placeholder="e.g., Database Systems" 
+                        value={newReview.courseName}
+                        onChange={(e) => setNewReview({...newReview, courseName: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="instructor" className="text-sm font-medium">Instructor*</label>
+                    <Input 
+                      id="instructor" 
+                      placeholder="e.g., Dr. Rahman" 
+                      value={newReview.instructor}
+                      onChange={(e) => setNewReview({...newReview, instructor: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="rating" className="text-sm font-medium">Rating</label>
+                      <Select 
+                        value={String(newReview.rating)} 
+                        onValueChange={(val) => setNewReview({...newReview, rating: parseFloat(val)})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Rating" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1].map(rating => (
+                            <SelectItem key={rating} value={String(rating)}>
+                              {rating}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="difficulty" className="text-sm font-medium">Difficulty</label>
+                      <Select 
+                        value={newReview.difficulty} 
+                        onValueChange={(val) => setNewReview({...newReview, difficulty: val})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Difficulty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {['Easy', 'Moderate', 'Hard', 'Very Hard'].map(difficulty => (
+                            <SelectItem key={difficulty} value={difficulty}>
+                              {difficulty}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="workload" className="text-sm font-medium">Workload</label>
+                      <Select 
+                        value={newReview.workload} 
+                        onValueChange={(val) => setNewReview({...newReview, workload: val})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Workload" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {['Light', 'Moderate', 'Heavy', 'Very Heavy'].map(workload => (
+                            <SelectItem key={workload} value={workload}>
+                              {workload}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="review" className="text-sm font-medium">Your Review*</label>
+                    <Textarea 
+                      id="review" 
+                      placeholder="Share your experience with this course and instructor..." 
+                      rows={4}
+                      value={reviewContent}
+                      onChange={(e) => setReviewContent(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button type="submit" onClick={handleNewReviewSubmit}>Submit Review</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           
-          {courseReviews.map((review) => (
+          {filteredReviews.length === 0 && (
+            <Card className="shadow-sm">
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground">No reviews found. Try adjusting your filters or add the first review!</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {filteredReviews.map((review) => (
             <Card key={review.id} className="shadow-sm">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
@@ -119,19 +511,34 @@ const CourseInsights = () => {
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`h-8 w-8 ${review.userLiked ? "text-primary" : ""}`}
+                        onClick={() => handleLike(review.id)}
+                      >
                         <ThumbsUp className="h-4 w-4" />
                       </Button>
                       <span className="text-xs">{review.likes}</span>
                     </div>
                     <div className="flex items-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`h-8 w-8 ${review.userDisliked ? "text-primary" : ""}`}
+                        onClick={() => handleDislike(review.id)}
+                      >
                         <ThumbsDown className="h-4 w-4" />
                       </Button>
                       <span className="text-xs">{review.dislikes}</span>
                     </div>
                     <div className="flex items-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleComment(review.id)}
+                      >
                         <MessageSquare className="h-4 w-4" />
                       </Button>
                       <span className="text-xs">{review.comments}</span>
@@ -142,9 +549,11 @@ const CourseInsights = () => {
             </Card>
           ))}
           
-          <div className="flex justify-center mt-6">
-            <Button variant="outline">Load More Reviews</Button>
-          </div>
+          {filteredReviews.length > 0 && (
+            <div className="flex justify-center mt-6">
+              <Button variant="outline" onClick={handleLoadMore}>Load More Reviews</Button>
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="faculty" className="mt-4">
